@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { mnemonicToSeed } from 'bip39'
 import { derivePath } from "ed25519-hd-key";
 import nacl from "tweetnacl";
@@ -11,7 +11,15 @@ export function SolanaWallet(mnemonic: string) {
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [publicKeys, setPubliicKeys] = useState<string[]>([]);
+    const [balances, setBalances] = useState<{ [key: string]: number }>({});
 
+
+    useEffect(() => {
+        publicKeys.forEach(async (key) => {
+            const balance = await getBalance(key);
+            setBalances((prev) => ({ ...prev, [key]: balance }))
+        })
+    }, [publicKeys]);
 
     return (
         <div>
@@ -28,7 +36,7 @@ export function SolanaWallet(mnemonic: string) {
 
             <ul>
                 {publicKeys.map((key, index) => (
-                    <li key={index}> {key}</li>
+                    <li key={index}> {key}   - Balance : {balances[key] ?? "Loading..."} SOL  </li>
                 ))}
             </ul>
         </div>
@@ -36,6 +44,24 @@ export function SolanaWallet(mnemonic: string) {
 }
 
 
- async function  getBalance(publicKey: string) {
-const response= axios.post(SolanaUrl,)
+async function getBalance(publicKey: string) {
+    try {
+        const response = await axios.post(SolanaUrl, {
+
+            jsonrpc: "2.0",
+            id: 1,
+            method: "getBalance",
+            params: [
+                publicKey
+            ]
+        })
+
+
+        return response.data.result.value;
+    } catch (e) {
+        console.log("Error fetching balance", e);
+        return 0;
+
+    }
+
 }
